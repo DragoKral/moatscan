@@ -42,6 +42,8 @@ grid-template-columns:minmax(150px,1.6fr) repeat(5,minmax(0,1fr));gap:6px 14px;a
 .note{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);color:var(--mute);font-size:13.5px;max-width:68ch}
 .note h3{font:600 15px var(--body);color:var(--fg);margin:16px 0 4px}
 .wl{line-height:1.9}
+.picks{margin:8px 0 36px}.picks h2{margin-top:0}.pick{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:14px 16px;margin:0 0 10px}
+.pick h3{font:600 17px var(--display);margin:0 0 4px}.pick p{margin:6px 0 0;max-width:68ch}.pick .why{color:var(--mute);font-size:13.5px}
 @media (max-width:640px){.row{grid-template-columns:repeat(2,minmax(0,1fr))}.id{grid-column:1/-1}}
 """
 
@@ -89,7 +91,8 @@ def _row(r, new):
             f'<div class="tags">{tags}</div></li>')
 
 
-def build(csv_path: str, listed: int | None = None, prev_csv: str | None = None) -> tuple[str, dict]:
+def build(csv_path: str, listed: int | None = None, prev_csv: str | None = None,
+          picks_html: str = "") -> tuple[str, dict]:
     t = pd.read_csv(csv_path)
     b = t[t.verdict == "BUY ZONE"].copy()
     w = t[t.verdict == "WATCHLIST"].copy()
@@ -126,6 +129,7 @@ def build(csv_path: str, listed: int | None = None, prev_csv: str | None = None)
 <h1>Buffett-style scan of the US market</h1>
 <p class="sub">Every NYSE/Nasdaq company that files with the SEC, judged on 10 years of its own filings, then priced against today's quote. Run {when}. Updated weekly. Estimates, not advice.</p>
 {change}
+{('<section class="picks"><h2>This week\'s top picks</h2>' + picks_html + '</section>') if picks_html else ''}
 <div class="funnel">
 <div class="step"><b>{stats["listed"]:,}</b><span>listed companies read</span></div>
 <div class="step"><b>{stats["passed"]}</b><span>pass quality + honest-books bar</span></div>
@@ -154,8 +158,14 @@ if __name__ == "__main__":
     if prev in args:
         args.remove(prev)
     csv_path = args[0] if args else sorted(glob.glob("reports/moatscan_scan_*.csv"))[-1]
-    out = args[1] if len(args) > 1 else "reports/market-scan.html"
     listed = int(sys.argv[sys.argv.index("--listed") + 1]) if "--listed" in sys.argv else None
-    page, stats = build(csv_path, listed, prev)
+    picks = ""
+    if "--picks" in sys.argv:
+        pf = sys.argv[sys.argv.index("--picks") + 1]
+        if pf in args:
+            args.remove(pf)
+        picks = open(pf).read()
+    out = args[1] if len(args) > 1 else "reports/market-scan.html"
+    page, stats = build(csv_path, listed, prev, picks)
     open(out, "w").write(page)
     print(stats)
