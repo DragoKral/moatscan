@@ -1,0 +1,111 @@
+sec:
+  # SEC requires a contact email in the User-Agent. Or set env SEC_USER_AGENT.
+  user_agent: "MoatScan karlabiaad@gmail.com"
+  cache_dir: data/cache
+
+# Default list for `python -m moatscan screen`. Edit freely.
+universe:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - META
+  - V
+  - MA
+  - KO
+  - PEP
+  - PG
+  - COST
+  - WMT
+  - HD
+  - LOW
+  - MCD
+  - CMG
+  - NKE
+  - ADP
+  - PAYX
+  - MSCI
+  - SPGI
+  - MCO
+  - ORLY
+  - AZO
+  - TJX
+  - ROL
+  - CTAS
+  - FAST
+  - GWW
+  - ITW
+  - TXN
+  - ADI
+  - KLAC
+  - LRCX
+  - AMAT
+  - ASML
+  - MU
+  - NVDA
+  - AVGO
+  - JNJ
+  - ABT
+  - SYK
+  - ISRG
+  - ZTS
+  - UNH
+  - CL
+  - KMB
+  - HSY
+  - MO
+  - PM
+  - VRSK
+  - CPRT
+  - ODFL
+  - UNP
+  - CSX
+  - DE
+  - CAT
+  - OXY
+  - CVX
+  - KR
+  - DPZ
+
+scan:
+  min_market_cap: 30000000     # skip true nano-caps (illiquid, often stale filings)
+  max_market_cap: .inf
+  netnet_ratio: 0.67           # Graham: market cap below 2/3 of net current assets
+
+quality:
+  min_roic: 0.15             # median 10y return on invested capital
+  min_roe: 0.15
+  max_liab_to_equity: 3.0
+  min_gross_margin: 0.40     # OR margins steady (below)
+  max_margin_cv: 0.25        # op-margin std/mean over 10y
+  max_debt_to_oe: 4.0        # years of owner earnings to repay all debt
+  min_cash_conversion: 0.90  # 10y operating cash / net income
+  max_capex_to_cfo: 0.50
+  max_share_growth: 0.01     # per year
+  min_value_compounding: 0.08
+
+red_flags:
+  max_accruals: 0.08
+  max_growth_gap: 0.10
+  max_sbc_to_cfo: 0.20
+  max_goodwill_share: 0.40
+  beneish_threshold: -1.78
+
+valuation:
+  discount_rate: 0.10        # floor; actual = max(this, 10y Treasury + premium)
+  equity_premium: 0.05
+  default_treasury: 0.043    # used if FRED unreachable
+  years: 10
+  terminal_growth: 0.025
+  growth_haircut: 0.75       # assume 75% of past revenue/share growth continues
+  max_growth: 0.12
+  margin_of_safety: 0.30     # buy only at >= 30% below intrinsic value
+
+insiders:
+  lookback_days: 180
+  max_filings: 60
+  cluster_min_insiders: 3
+  exec_buy_min_usd: 100000
+
+verdict:
+  min_quality: 70
+  max_flags: 1
