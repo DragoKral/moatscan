@@ -43,7 +43,7 @@ grid-template-columns:minmax(150px,1.6fr) repeat(5,minmax(0,1fr));gap:6px 14px;a
 .note h3{font:600 15px var(--body);color:var(--fg);margin:16px 0 4px}
 .wl{line-height:1.9}
 .picks{margin:8px 0 36px}.picks h2{margin-top:0}.pick{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:14px 16px;margin:0 0 10px}
-.pick h3{font:600 17px var(--display);margin:0 0 4px}.pick p{margin:6px 0 0;max-width:68ch}.pick .why{color:var(--mute);font-size:13.5px}
+.pick h3{font:600 17px var(--display);margin:0 0 4px}.pick p{margin:6px 0 0;max-width:68ch}.pick b{color:var(--fg)}.picks a{color:var(--accent)}.pick .why{color:var(--mute);font-size:13.5px}
 @media (max-width:640px){.row{grid-template-columns:repeat(2,minmax(0,1fr))}.id{grid-column:1/-1}}
 """
 
