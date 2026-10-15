@@ -43,3 +43,16 @@ def treasury_10y(default: float) -> float:
     except Exception:  # noqa: BLE001
         pass
     return default
+
+
+def analyst_growth(ticker: str) -> float | None:
+    """Average analyst revenue growth forecast for this fiscal year and next (Yahoo consensus)."""
+    try:
+        import yfinance as yf
+        re = yf.Ticker(ticker).revenue_estimate
+        if re is None or "growth" not in re:
+            return None
+        vals = [float(re.loc[k, "growth"]) for k in ("0y", "+1y") if k in re.index and re.loc[k, "growth"] == re.loc[k, "growth"]]
+        return sum(vals) / len(vals) if vals else None
+    except Exception:  # noqa: BLE001
+        return None

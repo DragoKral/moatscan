@@ -43,7 +43,8 @@ def run_one(sec: SEC, t: str, cfg: dict, treasury: float, price_override=None, i
         sic = sec.submissions(cik).get("sic")
     except Exception:  # noqa: BLE001
         sic = None
-    res = analyze(t.upper(), name, df, shares_outstanding(facts), px, cfg, treasury, sic=sic)
+    res = analyze(t.upper(), name, df, shares_outstanding(facts), px, cfg, treasury, sic=sic,
+                  fwd_growth=prices.analyst_growth(t))
     if insiders and res.verdict != "OUTSIDE CIRCLE":
         try:
             res.insiders = insider_summary(sec, cik, cfg)

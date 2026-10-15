@@ -193,7 +193,11 @@ def scan(sec, cfg: dict, treasury: float, include_otc=False, workers=None, min_c
         df = pd.read_json(__import__("io").StringIO(s["df"]))
         df.index = df.index.astype(int)
         df.index.name = "fy"
-        r = analyze(s["ticker"], s["title"], df, sh, px, cfg, treasury, sic=s["sic"])
+        fg = None
+        if s["keep"]:
+            from .prices import analyst_growth
+            fg = analyst_growth(s["ticker"].replace(".", "-"))
+        r = analyze(s["ticker"], s["title"], df, sh, px, cfg, treasury, sic=s["sic"], fwd_growth=fg)
         netnet = s["ncav"] == s["ncav"] and s["ncav"] > 0 and mcap < s["ncav"] * cfg.get("scan", {}).get("netnet_ratio", 0.67)
         if netnet:
             r.notes.append(f"Graham net-net: market cap {mcap/1e6:,.0f}M vs net current assets {s['ncav']/1e6:,.0f}M "
@@ -207,6 +211,8 @@ def scan(sec, cfg: dict, treasury: float, include_otc=False, workers=None, min_c
                      "verdict": r.verdict, "quality": round(r.quality_score, 1), "iv_per_share": v.get("iv_per_share"),
                      "buy_below": v.get("buy_below"), "margin_of_safety": v.get("margin_of_safety"),
                      "implied_growth": v.get("implied_growth"), "hist_growth": v.get("hist_growth"),
+                     "recent_growth": v.get("recent_growth"), "analyst_growth": v.get("analyst_growth"), "growth_used": v.get("growth_used"),
+                     "iv_no_growth": v.get("iv_no_growth"), "mos_no_growth": v.get("mos_no_growth"),
                      "oe_yield": v.get("oe_yield"), "ev_ebit": v.get("ev_ebit"), "piotroski": r.piotroski,
                      "red_flags": sum(1 for c in r.flags if c.passed), "net_net": netnet, "sic": s["sic"]})
     table = pd.DataFrame(rows)

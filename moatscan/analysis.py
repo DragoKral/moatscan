@@ -338,7 +338,7 @@ def is_cyclical_sic(sic) -> bool:
 
 
 def valuation(d: pd.DataFrame, shares_out: float | None, price: float | None, cfg: dict, treasury: float,
-              sic=None) -> dict:
+              sic=None, fwd_growth=None) -> dict:
     v = cfg["valuation"]
     oe = d["owner_earnings"].dropna()
     om = d["op_margin"].tail(10).dropna()
@@ -351,7 +351,14 @@ def valuation(d: pd.DataFrame, shares_out: float | None, price: float | None, cf
         base = min(base, oe.tail(2).mean())  # business getting worse: value on what it earns now
     rps = d["rev_ps"].dropna().tail(11)
     hist_g = _cagr(rps.iloc[0], rps.iloc[-1], len(rps) - 1) if len(rps) >= 5 else nan
-    g = 0.0 if math.isnan(hist_g) else min(max(hist_g * v["growth_haircut"], 0.0), v["max_growth"])
+    # recent growth (3y) caps the long-run rate: a business that stalled shouldn't get credit for its boom years
+    rps3 = d["rev_ps"].dropna().tail(4)
+    recent_g = _cagr(rps3.iloc[0], rps3.iloc[-1], len(rps3) - 1) if len(rps3) >= 4 else nan
+    fg = nan if fwd_growth is None else float(fwd_growth)
+    # analysts' forward forecast caps it too: past filings can't see a slowdown that started this year
+    cands = [x for x in (hist_g * v["growth_haircut"] if not math.isnan(hist_g) else nan, recent_g, fg)
+             if not math.isnan(x)]
+    g = min(max(min(cands), 0.0), v["max_growth"]) if cands else 0.0
     r = max(v["discount_rate"], treasury + v["equity_premium"])
     dil = d["shares_diluted"].dropna()
     if len(dil) and (not shares_out or not 0.75 <= shares_out / dil.iloc[-1] <= 1.33):
@@ -360,7 +367,7 @@ def valuation(d: pd.DataFrame, shares_out: float | None, price: float | None, cf
     net_cash = last["cash_all"] - last["total_debt"]
     shares_out = shares_out if shares_out else None
     out = {"cyclical": cyclical, "base_owner_earnings": base, "hist_growth": hist_g, "growth_used": g,
-           "discount_rate": r, "terminal_growth": v["terminal_growth"], "net_cash": net_cash,
+           "recent_growth": recent_g, "analyst_growth": fg, "discount_rate": r, "terminal_growth": v["terminal_growth"], "net_cash": net_cash,
            "shares_out": shares_out, "price": price, "treasury": treasury}
     if math.isnan(base) or base <= 0 or not shares_out:
         out["note"] = "No positive normalized owner earnings - can't value on earning power."
@@ -369,10 +376,13 @@ def valuation(d: pd.DataFrame, shares_out: float | None, price: float | None, cf
     equity = ev + net_cash
     iv = equity / shares_out
     out.update(intrinsic_value=equity, iv_per_share=iv, buy_below=iv * (1 - v["margin_of_safety"]))
+    iv0 = (dcf_value(base, 0.0, v["years"], v["terminal_growth"], r) + net_cash) / shares_out
+    out["iv_no_growth"] = iv0
     if price and not math.isnan(price) and price > 0:
         mcap = price * shares_out
         out["market_cap"] = mcap
         out["margin_of_safety"] = 1 - price / iv if iv > 0 else nan
+        out["mos_no_growth"] = 1 - price / iv0 if iv0 > 0 else nan
         out["oe_yield"] = base / (mcap - net_cash) if mcap - net_cash > 0 else nan
         out["implied_growth"] = implied_growth(mcap - net_cash, base, v["years"], v["terminal_growth"], r)
         out["p_fcf"] = mcap / last["fcf"] if last["fcf"] > 0 else nan
@@ -419,7 +429,7 @@ def score_and_verdict(res: Result, cfg: dict) -> None:
 
 
 def analyze(ticker: str, name: str, df: pd.DataFrame, shares_out, price, cfg: dict, treasury: float,
-            sic=None) -> Result:
+            sic=None, fwd_growth=None) -> Result:
     d = derive(df)
     res = Result(ticker=ticker, name=name, years=list(d.index), table=d)
     if d["revenue"].notna().sum() < 3 or d["cfo"].notna().sum() < 3:
@@ -431,6 +441,6 @@ def analyze(ticker: str, name: str, df: pd.DataFrame, shares_out, price, cfg: di
     res.flags = red_flags(d, cfg)
     res.piotroski = piotroski(d)
     res.beneish = beneish(d)
-    res.valuation = valuation(d, shares_out, price, cfg, treasury, sic)
+    res.valuation = valuation(d, shares_out, price, cfg, treasury, sic, fwd_growth)
     score_and_verdict(res, cfg)
     return res

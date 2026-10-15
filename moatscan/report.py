@@ -69,7 +69,7 @@ def _card(r: Result) -> str:
     v = r.valuation
     if v:
         k = [("Price", _d(v.get("price"))), ("Intrinsic value / sh", _d(v.get("iv_per_share"))),
-             ("Buy below", _d(v.get("buy_below"))), ("Margin of safety", _p(v.get("margin_of_safety"), 0)),
+             ("Buy below", _d(v.get("buy_below"))), ("Value if no growth", _d(v.get("iv_no_growth"))), ("Margin of safety", _p(v.get("margin_of_safety"), 0)),
              ("Owner-earnings yield", _p(v.get("oe_yield"))), ("10y Treasury", _p(v.get("treasury"), 2)),
              ("Growth price implies", _p(v.get("implied_growth"))), ("Growth assumed", _p(v.get("growth_used"))),
              ("Quality score", f"{r.quality_score:.0f}/100" if not math.isnan(r.quality_score) else "n/a"),
