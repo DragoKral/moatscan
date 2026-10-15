@@ -92,6 +92,29 @@ def _row(r, new):
             f'<div class="tags">{tags}</div></li>')
 
 
+def _gem_row(r, new):
+    tags = []
+    a = r.get("analysts")
+    tags.append(f'<span class="tag">{"no" if not a or a != a else int(a)} analyst{"" if a == 1 else "s"}</span>')
+    if r.get("off_high") == r.get("off_high") and r.get("off_high") and r.off_high > 0.15:
+        tags.append(f'<span class="tag flag">down {r.off_high*100:.0f}% from 1-yr high</span>')
+    if r.get("insider_own") == r.get("insider_own") and r.get("insider_own") and r.insider_own >= 0.05:
+        tags.append(f'<span class="tag">insiders own {r.insider_own*100:.0f}%</span>')
+    if str(r.insider_signal) == "True":
+        tags.append('<span class="tag ins">Insider buying</span>')
+    if new:
+        tags.append('<span class="tag ins">New this week</span>')
+    name = r["name"].title() if r["name"].isupper() else r["name"]
+    return (f'<li class="row"><div class="id"><b>{r.ticker}</b><span>{html.escape(name)}</span></div>'
+            f'<div class="m"><span class="lab">Contrarian score</span><span class="val">{r.gem_score:.0f}</span></div>'
+            f'<div class="m"><span class="lab">Price / value</span><span class="val">${r.price:,.2f} / ${r.iv_per_share:,.2f}</span></div>'
+            f'<div class="m"><span class="lab">If no growth</span><span class="val">${r.iv_no_growth:,.2f}</span></div>'
+            f'<div class="m"><span class="lab">Quality</span><span class="val">{r.quality:.0f}</span></div>'
+            f'<div class="m"><span class="lab">Growth assumed</span><span class="val">{_p(r.growth_used)}/yr</span></div>'
+            f'<div class="m"><span class="lab">Size</span><span class="val">{_cap(r.market_cap)}</span></div>'
+            f'<div class="tags">{"".join(tags)}</div></li>')
+
+
 def build(csv_path: str, listed: int | None = None, prev_csv: str | None = None,
           picks_html: str = "") -> tuple[str, dict]:
     t = pd.read_csv(csv_path)
@@ -110,6 +133,22 @@ def build(csv_path: str, listed: int | None = None, prev_csv: str | None = None,
                          f'<p class="lede">{GROUPS[k][1]}</p><ul class="list">'
                          + "".join(_row(r, bool(prev_buy) and r.ticker not in prev_buy) for _, r in s.iterrows())
                          + "</ul></section>")
+    gems = ""
+    if "gem_score" in t:
+        g = t[t.gem_score.notna()].sort_values("gem_score", ascending=False).head(15)
+        prev_g = set()
+        if prev_csv:
+            pp = pd.read_csv(prev_csv)
+            if "gem_score" in pp:
+                prev_g = set(pp[pp.gem_score.notna()].sort_values("gem_score", ascending=False).head(15).ticker)
+        if len(g):
+            gems = ('<section><h2>Under-the-radar small caps <span class="n">' + str(len(g)) + '</span></h2>'
+                    '<p class="lede">Companies under $3B that pass the quality bar, ranked for a contrarian investor: '
+                    'cheap even if growth stops, few analysts following them, beaten down from their highs, and '
+                    'insiders with real money in. Small stocks swing harder and trade thinly, so use limit orders '
+                    'and keep positions small.</p><ul class="list">'
+                    + "".join(_gem_row(r, bool(prev_g) and r.ticker not in prev_g) for _, r in g.iterrows())
+                    + "</ul></section>")
     wl = ", ".join(f"<b>{r.ticker}</b> (buy below ${r.buy_below:,.0f})"
                    for _, r in w.sort_values("margin_of_safety", ascending=False).head(20).iterrows())
     dropped = sorted(prev_buy - set(b.ticker)) if prev_buy else []
@@ -138,6 +177,7 @@ def build(csv_path: str, listed: int | None = None, prev_csv: str | None = None,
 <div class="step"><b>{stats["watch"]}</b><span>good, small discount</span></div>
 <div class="step hi"><b>{stats["buy"]}</b><span>30%+ below estimated value</span></div>
 </div>
+{gems}
 {"".join(parts)}
 <div class="note">
 <h3>Watchlist: good businesses, wait for these prices</h3>

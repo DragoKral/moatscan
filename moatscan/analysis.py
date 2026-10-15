@@ -65,6 +65,9 @@ def derive(df: pd.DataFrame) -> pd.DataFrame:
     own = (d["net_income"] / d["profit_total"]).where((d["profit_total"] > 0) & (d["net_income"] > 0))
     d["own_frac"] = own.clip(0.05, 1).fillna(1.0)
     d["owner_earnings"] = d["owner_earnings"] * d["own_frac"]
+    # earnings-based version (Buffett's 1986 definition: net income + D&A - maintenance capex);
+    # steadier than the cash version, which swings with inventory and receivables
+    d["owner_earnings_ni"] = (d["net_income"] + d["da"].fillna(0) - d["maint_capex"]) * d["own_frac"]
     sh = d["shares_diluted"]
     d["oe_ps"] = _safe_div(d["owner_earnings"], sh)
     d["rev_ps"] = _safe_div(rev, sh)
@@ -109,6 +112,7 @@ class Result:
     verdict: str = ""
     verdict_why: str = ""
     notes: list[str] = field(default_factory=list)
+    radar: dict = field(default_factory=dict)
 
 
 def _fmt_pct(x):
@@ -345,6 +349,10 @@ def valuation(d: pd.DataFrame, shares_out: float | None, price: float | None, cf
     cyclical = is_cyclical_sic(sic) or bool(len(om) >= 5 and ((d["net_income"].tail(10) <= 0).any() or (om.std() / abs(om.mean()) > 0.5 if om.mean() else True)))
     # median of 5y resists one-off cash hits (tax deposits, legal settlements); cyclicals use full-cycle mean
     base = oe.tail(10).mean() if cyclical else oe.tail(5).median()
+    oe_ni = d["owner_earnings_ni"].dropna()
+    if len(oe_ni) >= 3:  # use the lower of cash-based and earnings-based owner earnings (one-off cash swings)
+        base_ni = oe_ni.tail(10).mean() if cyclical else min(oe_ni.tail(5).median(), oe_ni.tail(2).mean())
+        base = min(base, base_ni)
     rv = d["revenue"].dropna()
     shrinking = len(rv) >= 4 and _cagr(rv.iloc[-4], rv.iloc[-1], 3) < -0.05
     if shrinking or (not cyclical and oe.tail(2).mean() < base):

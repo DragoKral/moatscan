@@ -85,7 +85,8 @@ def _pass1(args):
         nflags = sum(1 for c in r.flags if c.passed)
         last = df.iloc[-1]
         ncav = (last.get("cur_assets", math.nan) or math.nan) - (last.get("liabilities", math.nan) or math.nan)
-        keep = (r.quality_score >= _CFG["verdict"]["min_quality"] and nflags <= _CFG["verdict"]["max_flags"])
+        bar = min(_CFG["verdict"]["min_quality"], _CFG.get("scan", {}).get("small_min_quality", 100))
+        keep = (r.quality_score >= bar and nflags <= _CFG["verdict"]["max_flags"])
         netnet_cand = ncav == ncav and ncav > 0 and last["net_income"] > 0
         if not (keep or netnet_cand):
             return None
@@ -187,22 +188,31 @@ def scan(sec, cfg: dict, treasury: float, include_otc=False, workers=None, min_c
             sh = vals[-1] if vals else None
         if not px or not sh:
             continue
+        js = json.loads(s["df"]).get("shares_diluted", {})
+        dl = [v for _, v in sorted(js.items()) if v]
+        if dl and not 0.75 <= sh / dl[-1] <= 1.33:
+            sh = dl[-1]  # same guard the valuation uses, so market cap and value agree
         mcap = px * sh
         if not (min_cap <= mcap <= max_cap):
             continue
         df = pd.read_json(__import__("io").StringIO(s["df"]))
         df.index = df.index.astype(int)
         df.index.name = "fy"
+        small = mcap < sc.get("small_cap_max", 3e9)
+        keep = s["keep"] and (small or s["quality"] >= cfg["verdict"]["min_quality"])
+        ccfg = cfg
+        if small:  # small caps: shorter histories and lumpier numbers, so a slightly lower quality bar
+            ccfg = {**cfg, "verdict": {**cfg["verdict"], "min_quality": sc.get("small_min_quality", cfg["verdict"]["min_quality"])}}
         fg = None
-        if s["keep"]:
+        if keep:
             from .prices import analyst_growth
             fg = analyst_growth(s["ticker"].replace(".", "-"))
-        r = analyze(s["ticker"], s["title"], df, sh, px, cfg, treasury, sic=s["sic"], fwd_growth=fg)
+        r = analyze(s["ticker"], s["title"], df, sh, px, ccfg, treasury, sic=s["sic"], fwd_growth=fg)
         netnet = s["ncav"] == s["ncav"] and s["ncav"] > 0 and mcap < s["ncav"] * cfg.get("scan", {}).get("netnet_ratio", 0.67)
         if netnet:
             r.notes.append(f"Graham net-net: market cap {mcap/1e6:,.0f}M vs net current assets {s['ncav']/1e6:,.0f}M "
                            "(cigar butt - cheap on assets, not a quality compounder).")
-        if not s["keep"] and not netnet:
+        if not keep and not netnet:
             continue
         r.size = _size(mcap)
         results.append(r)
@@ -214,15 +224,24 @@ def scan(sec, cfg: dict, treasury: float, include_otc=False, workers=None, min_c
                      "recent_growth": v.get("recent_growth"), "analyst_growth": v.get("analyst_growth"), "growth_used": v.get("growth_used"),
                      "iv_no_growth": v.get("iv_no_growth"), "mos_no_growth": v.get("mos_no_growth"),
                      "oe_yield": v.get("oe_yield"), "ev_ebit": v.get("ev_ebit"), "piotroski": r.piotroski,
-                     "red_flags": sum(1 for c in r.flags if c.passed), "net_net": netnet, "sic": s["sic"]})
+                     "red_flags": sum(1 for c in r.flags if c.passed), "net_net": netnet, "sic": s["sic"],
+                     "small": small})
     table = pd.DataFrame(rows)
     if table.empty:
         return results, table
     table = table.sort_values("margin_of_safety", ascending=False)
 
-    top = [t for t in table.ticker if t in {r.ticker for r in results if r.verdict in ("BUY ZONE", "WATCHLIST")}]
+    good = table.verdict.isin(["BUY ZONE", "WATCHLIST"])
+    small_good = table[good & table.small].ticker.tolist()
+    top = small_good + [t for t in table[good].ticker if t not in small_good][: max(0, insiders_top - len(small_good))]
     top += [t for t in table[table.net_net].ticker if t not in top]
-    top = top[:insiders_top]
+
+    # under-the-radar signals for small caps worth a look
+    print(f"Radar check on {len(small_good)} small caps...", flush=True)
+    from .prices import radar
+    rad = {t: radar(t.replace(".", "-")) for t in small_good}
+    for col in ("analysts", "inst_own", "insider_own", "off_high"):
+        table[col] = table.ticker.map(lambda t, c=col: rad.get(t, {}).get(c))
     print(f"Insider check on top {len(top)}...", flush=True)
     by_t = {r.ticker: r for r in results}
     cik_of = {s["ticker"]: s["cik"] for s in kept}
@@ -232,7 +251,29 @@ def scan(sec, cfg: dict, treasury: float, include_otc=False, workers=None, min_c
         except Exception:  # noqa: BLE001
             pass
     table["insider_signal"] = table.ticker.map(lambda t: by_t[t].insiders.get("cluster", "") if t in by_t else "")
+    table["gem_score"] = table.apply(gem_score, axis=1)
+    for r in results:
+        r.radar = rad.get(r.ticker, {})
     return results, table
+
+
+def gem_score(r) -> float | None:
+    """Contrarian small-cap score, 0-100: cheap even with no growth, quality, few analysts watching,
+    beaten down, insiders own a lot or are buying."""
+    if not r.get("small") or r.get("verdict") not in ("BUY ZONE", "WATCHLIST"):
+        return None
+    def nz(x, d=0.0):
+        return d if x is None or x != x else float(x)
+    mos0 = max(min(nz(r.get("mos_no_growth"), -0.5), 0.6), -0.5)      # -0.5..0.6
+    sc = 30 * (mos0 + 0.5) / 1.1
+    sc += 20 * (nz(r.get("quality"), 60) - 60) / 40
+    a = r.get("analysts")
+    sc += 15 if a is None or a != a or a <= 2 else 10 if a <= 5 else 4 if a <= 8 else 0
+    sc += 10 * min(max(nz(r.get("off_high")), 0), 0.6) / 0.6          # down from 52w high
+    sc += 10 * min(nz(r.get("insider_own")), 0.3) / 0.3
+    sc += 10 if str(r.get("insider_signal")) == "True" else 0
+    sc += 5 if r.get("verdict") == "BUY ZONE" else 0
+    return round(max(min(sc, 100), 0), 1)
 
 
 def _size(mcap: float) -> str:

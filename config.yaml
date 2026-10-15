@@ -70,6 +70,8 @@ scan:
   min_market_cap: 30000000     # skip true nano-caps (illiquid, often stale filings)
   max_market_cap: .inf
   netnet_ratio: 0.67           # Graham: market cap below 2/3 of net current assets
+  small_cap_max: 3000000000    # "small" for the under-the-radar section
+  small_min_quality: 62        # small caps: shorter histories, lumpier numbers -> slightly lower bar
 
 quality:
   min_roic: 0.15             # median 10y return on invested capital

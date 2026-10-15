@@ -56,3 +56,20 @@ def analyst_growth(ticker: str) -> float | None:
         return sum(vals) / len(vals) if vals else None
     except Exception:  # noqa: BLE001
         return None
+
+
+def radar(ticker: str) -> dict:
+    """How widely followed a stock is and how beaten down: analyst count, ownership, distance from 52-week high."""
+    out = {}
+    try:
+        import yfinance as yf
+        info = yf.Ticker(ticker).info or {}
+        out["analysts"] = info.get("numberOfAnalystOpinions") or 0
+        out["inst_own"] = info.get("heldPercentInstitutions")
+        out["insider_own"] = info.get("heldPercentInsiders")
+        hi, px = info.get("fiftyTwoWeekHigh"), info.get("currentPrice") or info.get("regularMarketPrice")
+        if hi and px:
+            out["off_high"] = 1 - px / hi
+    except Exception:  # noqa: BLE001
+        pass
+    return out

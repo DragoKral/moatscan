@@ -55,6 +55,8 @@ FIELDS: dict[str, tuple[str, str, list[str]]] = {
                                      "DebtCurrent"]),
     "commercial_paper": ("inst", "USD", ["CommercialPaper"]),
     "st_borrowings": ("inst", "USD", ["ShortTermBorrowings", "OtherShortTermBorrowings"]),
+    "credit_line": ("inst", "USD", ["LineOfCredit", "LongTermLineOfCredit", "LinesOfCreditCurrent",
+                                    "LongTermLineOfCreditNoncurrent"]),
     "receivables": ("inst", "USD", ["AccountsReceivableNetCurrent"]),
     "inventory": ("inst", "USD", ["InventoryNet"]),
     "goodwill": ("inst", "USD", ["Goodwill"]),
@@ -143,6 +145,10 @@ def annual_table(facts: dict, years: int = 12) -> pd.DataFrame:
         df["gross_profit"] = df["gross_profit"].fillna(df["revenue"] - df["cogs"])
     parts = df[["lt_debt", "debt_current"]].sum(axis=1, min_count=1)
     st = df[["commercial_paper", "st_borrowings"]].fillna(0).sum(axis=1)
+    # revolver borrowings are often tagged separately; add them when the debt tags clearly exclude them
+    cl = df["credit_line"].fillna(0)
+    base_debt = df["debt_combined"].fillna(df[["lt_debt", "debt_current"]].sum(axis=1, min_count=1)).fillna(0)
+    st = st + cl.where(cl > base_debt * 0.05, 0).where(base_debt < cl * 2, 0)
     df["liabilities"] = df["liabilities"].fillna(df["assets"] - df["equity"])
     df["total_debt"] = df["debt_combined"].fillna(parts).fillna(0) + st
     df["lt_debt"] = df["lt_debt"].fillna(df["debt_combined"])
