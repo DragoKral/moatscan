@@ -373,6 +373,10 @@ def valuation(d: pd.DataFrame, shares_out: float | None, price: float | None, cf
         shares_out = dil.iloc[-1]  # cover-page count missing classes or stale
     last = d.iloc[-1]
     net_cash = last["cash_all"] - last["total_debt"]
+    eq = last["equity"]
+    if net_cash > 0 and not math.isnan(eq) and net_cash > max(eq, 0):
+        # cash beyond shareholders' equity is funded by others (client float, deposits, payables)
+        net_cash = max(eq, 0)
     shares_out = shares_out if shares_out else None
     out = {"cyclical": cyclical, "base_owner_earnings": base, "hist_growth": hist_g, "growth_used": g,
            "recent_growth": recent_g, "analyst_growth": fg, "discount_rate": r, "terminal_growth": v["terminal_growth"], "net_cash": net_cash,

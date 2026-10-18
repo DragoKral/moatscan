@@ -67,7 +67,8 @@ def insider_summary(sec, cik: int, cfg: dict, today: date | None = None) -> dict
     top = any(any(k in b["title"].upper() for k in ("CEO", "CHIEF EXECUTIVE", "CFO", "CHIEF FINANCIAL"))
               and b["value"] >= ic["exec_buy_min_usd"] for b in buys)
     total = sum(b["value"] for b in buys)
-    signal = len(buyers) >= ic["cluster_min_insiders"] or top
+    # net buying only: one insider's small purchase doesn't offset another's large sale
+    signal = (len(buyers) >= ic["cluster_min_insiders"] or top) and total > sells
     return {"window_days": ic["lookback_days"], "form4_checked": len(filings), "buyers": sorted(buyers),
             "buy_usd": total, "sell_usd": sells, "exec_buy": top, "cluster": signal,
             "buys": sorted(buys, key=lambda b: b["date"], reverse=True)[:10]}

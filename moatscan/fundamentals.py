@@ -153,6 +153,11 @@ def annual_table(facts: dict, years: int = 12) -> pd.DataFrame:
     df["total_debt"] = df["debt_combined"].fillna(parts).fillna(0) + st
     df["lt_debt"] = df["lt_debt"].fillna(df["debt_combined"])
     df["shares_diluted"] = split_adjust(df["shares_diluted"])
+    sh_ok = df["shares_diluted"].dropna()
+    if len(sh_ok) and sh_ok.index.max() < df.index.max() - 1:
+        # filer stopped tagging total diluted shares (e.g. per-class EPS only): an old count would
+        # miss later splits and break all per-share math, so treat the count as unknown
+        df["shares_diluted"] = float("nan")
     # some filers tag share counts in millions/thousands; rescale against the cover-page count
     so = shares_outstanding(facts)
     last_sh = df["shares_diluted"].dropna()
