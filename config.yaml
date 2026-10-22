@@ -127,6 +127,25 @@ watchlists:
     - PESI
     - SOLS
 
+  # Supply chain for AI power buildout: turbines, grid gear, contractors, cooling, copper, nuclear fuel
+  supply-chain:
+    - GEV
+    - CAT
+    - BE
+    - HUBB
+    - ETN
+    - PWR
+    - MTZ
+    - FIX
+    - VRT
+    - MOD
+    - TT
+    - FCX
+    - SCCO
+    - CENX
+    - CCJ
+    - LEU
+
 scan:
   min_market_cap: 30000000     # skip true nano-caps (illiquid, often stale filings)
   max_market_cap: .inf
