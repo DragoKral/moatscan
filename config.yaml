@@ -146,6 +146,28 @@ watchlists:
     - CCJ
     - LEU
 
+  # Less obvious AI-power bottlenecks: turbine metals, grid steel, gas midstream, fiber, water, labor, storage, power chips
+  grid-extras:
+    - HWM
+    - CRS
+    - ATI
+    - CLF
+    - KMI
+    - WMB
+    - ET
+    - GLW
+    - CIEN
+    - XYL
+    - WTS
+    - EME
+    - PRIM
+    - STRL
+    - IESC
+    - FLNC
+    - ENS
+    - "ON"
+    - WOLF
+
 scan:
   min_market_cap: 30000000     # skip true nano-caps (illiquid, often stale filings)
   max_market_cap: .inf
