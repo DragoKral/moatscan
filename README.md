@@ -47,6 +47,7 @@ python -m moatscan analyze MU KO AAPL      # deep read; opens an HTML report
 python -m moatscan analyze MU --price 95   # override price
 python -m moatscan screen                  # ~60-stock universe in config.yaml (~3–5 min first run, cached after)
 python -m moatscan screen --no-insiders    # faster
+python -m moatscan screen --list nuclear   # named list under `watchlists:` in config.yaml
 ```
 Reports and a CSV are saved to `reports/`. All thresholds live in `config.yaml`.
 

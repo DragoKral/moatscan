@@ -4,6 +4,7 @@
   python -m moatscan analyze MU --price 95       # override price
   python -m moatscan screen                      # whole universe in config.yaml
   python -m moatscan screen --no-insiders        # faster
+  python -m moatscan screen --list nuclear       # a named list under watchlists: in config.yaml
   python -m moatscan scan                        # whole US market incl. small/micro caps
   python -m moatscan scan --max-cap 2e9          # small + micro caps only
 """
@@ -76,6 +77,7 @@ def main(argv=None):
     s = sub.add_parser("screen")
     s.add_argument("--no-insiders", action="store_true")
     s.add_argument("--no-open", action="store_true")
+    s.add_argument("--list", dest="watchlist", help="named list under watchlists: in config.yaml (default: universe)")
     u = sub.add_parser("scan", help="whole market from SEC bulk data")
     u.add_argument("--min-cap", type=float)
     u.add_argument("--max-cap", type=float)
@@ -90,7 +92,17 @@ def main(argv=None):
     treasury = prices.treasury_10y(cfg["valuation"]["default_treasury"])
     if args.cmd == "scan":
         return _scan(args, sec, cfg, treasury)
-    tickers = args.tickers if args.cmd == "analyze" else cfg["universe"]
+    wl = getattr(args, "watchlist", None)
+    if args.cmd == "analyze":
+        tickers = args.tickers
+    elif wl:
+        lists = cfg.get("watchlists") or {}
+        if wl not in lists:
+            ap.error(f"no watchlist '{wl}' in config (have: {', '.join(lists) or 'none'})")
+        tickers = lists[wl]
+    else:
+        tickers = cfg["universe"]
+    label = args.cmd + (f"_{wl}" if wl else "")
     results: list[Result] = []
     for i, t in enumerate(tickers, 1):
         try:
@@ -107,9 +119,9 @@ def main(argv=None):
     out = Path("reports")
     out.mkdir(exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M")
-    html_path = out / f"moatscan_{args.cmd}_{stamp}.html"
-    html_path.write_text(render(results, "MoatScan " + ("screen" if args.cmd == "screen" else " · ".join(tickers).upper())))
-    with open(out / f"moatscan_{args.cmd}_{stamp}.csv", "w", newline="") as f:
+    html_path = out / f"moatscan_{label}_{stamp}.html"
+    html_path.write_text(render(results, "MoatScan " + ((f"screen · {wl}" if wl else "screen") if args.cmd == "screen" else " · ".join(tickers).upper())))
+    with open(out / f"moatscan_{label}_{stamp}.csv", "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["ticker", "verdict", "quality", "price", "iv_per_share", "buy_below", "margin_of_safety",
                     "implied_growth", "oe_yield", "piotroski", "beneish", "red_flags", "insider_signal"])

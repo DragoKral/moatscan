@@ -66,6 +66,67 @@ universe:
   - KR
   - DPZ
 
+# Named lists for `python -m moatscan screen --list NAME`.
+watchlists:
+  # Nuclear: utilities/IPPs, uranium miners & royalties, fuel cycle, reactor developers, suppliers/EPC
+  nuclear:
+    - CEG
+    - VST
+    - TLN
+    - NEE
+    - DUK
+    - SO
+    - D
+    - PEG
+    - ETR
+    - EXC
+    - AEP
+    - XEL
+    - DTE
+    - EVRG
+    - AEE
+    - PNW
+    - LNT
+    - NRG
+    - PPL
+    - SRE
+    - CCJ
+    - UEC
+    - UUUU
+    - DNN
+    - NXE
+    - URG
+    - EU
+    - UROY
+    - ISOU
+    - BHP
+    - RIO
+    - KAP
+    - AEC
+    - FNUC
+    - JAGU
+    - FMST
+    - NUCL
+    - LEU
+    - ASPI
+    - LTBR
+    - OKLO
+    - SMR
+    - NNE
+    - NKLR
+    - IMSR
+    - XE
+    - FRMI
+    - GEV
+    - BWXT
+    - CW
+    - MIR
+    - FLR
+    - ETN
+    - PWR
+    - PESI
+    - SOLS
+
 scan:
   min_market_cap: 30000000     # skip true nano-caps (illiquid, often stale filings)
   max_market_cap: .inf
