@@ -92,6 +92,14 @@ def _row(r, new):
             f'<div class="tags">{tags}</div></li>')
 
 
+def _odds(po: float) -> str:
+    """Plain-language payoff odds: upside to estimated value per $1 of downside to the bad case."""
+    if po >= 99:
+        return "Cheap even if things go badly"
+    word = "Good odds" if po >= 2 else "Fair odds" if po >= 1 else "Poor odds"
+    return f"{word}: ${po:,.1f} upside per $1 at risk"
+
+
 def _gem_row(r, new):
     tags = []
     a = r.get("analysts")
@@ -104,13 +112,19 @@ def _gem_row(r, new):
         tags.append('<span class="tag ins">Insider buying</span>')
     if new:
         tags.append('<span class="tag ins">New this week</span>')
+    bad = "–"
+    po = r.get("payoff")
+    if r.get("iv_bad") == r.get("iv_bad") and r.get("iv_bad") is not None:
+        bad = f"${r.iv_bad:,.2f}"
+    if po is not None and po == po:
+        tags.append(f'<span class="tag {"ins" if po >= 2 else "flag" if po < 1 else ""}">{_odds(po)}</span>')
     name = r["name"].title() if r["name"].isupper() else r["name"]
     return (f'<li class="row"><div class="id"><b>{r.ticker}</b><span>{html.escape(name)}</span></div>'
             f'<div class="m"><span class="lab">Contrarian score</span><span class="val">{r.gem_score:.0f}</span></div>'
             f'<div class="m"><span class="lab">Price / value</span><span class="val">${r.price:,.2f} / ${r.iv_per_share:,.2f}</span></div>'
             f'<div class="m"><span class="lab">If no growth</span><span class="val">${r.iv_no_growth:,.2f}</span></div>'
+            f'<div class="m"><span class="lab">If it goes badly</span><span class="val">{bad}</span></div>'
             f'<div class="m"><span class="lab">Quality</span><span class="val">{r.quality:.0f}</span></div>'
-            f'<div class="m"><span class="lab">Growth assumed</span><span class="val">{_p(r.growth_used)}/yr</span></div>'
             f'<div class="m"><span class="lab">Size</span><span class="val">{_cap(r.market_cap)}</span></div>'
             f'<div class="tags">{"".join(tags)}</div></li>')
 
@@ -183,7 +197,7 @@ def build(csv_path: str, listed: int | None = None, prev_csv: str | None = None,
 <h3>Watchlist: good businesses, wait for these prices</h3>
 <p class="wl">{wl}</p>
 <h3>How the numbers work</h3>
-<p><b>Value</b> is what the business is worth from the cash it makes for owners (operating cash minus upkeep spending and stock pay), discounted at 10% a year. Growth assumed is the lowest of: 75% of its 10-year growth, its last-3-year growth, analysts' forecast for this year and next, or 12%. <b>If no growth</b> is the value if growth stops entirely; a price below that means future growth comes free. <b>Discount</b> is how far the price sits below that value; Buffett-style buying wants 30% or more. <b>Quality</b> scores 10 checks: returns on capital, margins, debt, cash conversion, dilution, and whether the business is shrinking.</p>
+<p><b>Value</b> is what the business is worth from the cash it makes for owners (operating cash minus upkeep spending and stock pay), discounted at 10% a year. Growth assumed is the lowest of: 75% of its 10-year growth, its last-3-year growth, analysts' forecast for this year and next, or 12%. <b>If no growth</b> is the value if growth stops entirely; a price below that means future growth comes free. <b>Discount</b> is how far the price sits below that value; Buffett-style buying wants 30% or more. <b>If it goes badly</b> is a stress test: earnings take a hit as big as the company's worst 3-year stretch of the past decade (or a researched cut for a known problem, like royalties that are about to expire), then keep slipping 3% a year. <b>Odds</b> compare the two: how many dollars you could gain if the price rises to the estimated value, for every dollar you could lose if the bad case comes true. Good odds means $2 or more of upside per $1 at risk; "cheap even if things go badly" means the price is already below the bad-case value. <b>Quality</b> scores 10 checks: returns on capital, margins, debt, cash conversion, dilution, and whether the business is shrinking.</p>
 <h3>Left out on purpose</h3>
 <p>Banks, insurers, REITs and other financials (the model doesn't fit them); foreign companies filing 20-F/40-F (share and currency math breaks); companies under $30M market cap; and businesses with revenue falling more than 5% a year.</p>
 <h3>Before buying any of these</h3>

@@ -162,6 +162,13 @@ valuation:
   growth_haircut: 0.75       # assume 75% of past revenue/share growth continues
   max_growth: 0.12
   margin_of_safety: 0.30     # buy only at >= 30% below intrinsic value
+  bad_case_decline: 0.03     # bad case: after a hit as big as its worst 3-year stretch, earnings slip 3%/yr...
+  bad_case_max_cut: 0.60     # ...with the hit capped at 60%
+
+# Hand-set bad-case earnings cut for known cliffs the filings can't see (researched; revisit yearly).
+bad_case:
+  INVA: 0.50   # GSK inhaler royalties (~half of revenue) expected to fade around 2031
+  SHOE: 0.50   # profits roughly halved in 2026 under an interim CEO (sales history hides it)
 
 insiders:
   lookback_days: 180

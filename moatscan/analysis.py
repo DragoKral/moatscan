@@ -342,7 +342,7 @@ def is_cyclical_sic(sic) -> bool:
 
 
 def valuation(d: pd.DataFrame, shares_out: float | None, price: float | None, cfg: dict, treasury: float,
-              sic=None, fwd_growth=None) -> dict:
+              sic=None, fwd_growth=None, override=None) -> dict:
     v = cfg["valuation"]
     oe = d["owner_earnings"].dropna()
     om = d["op_margin"].tail(10).dropna()
@@ -390,6 +390,18 @@ def valuation(d: pd.DataFrame, shares_out: float | None, price: float | None, cf
     out.update(intrinsic_value=equity, iv_per_share=iv, buy_below=iv * (1 - v["margin_of_safety"]))
     iv0 = (dcf_value(base, 0.0, v["years"], v["terminal_growth"], r) + net_cash) / shares_out
     out["iv_no_growth"] = iv0
+    # bad case: what if the market's worry comes true? Owner earnings take a hit as big as the company's
+    # worst 3-year stretch of the last decade (or a hand-set cut from config bad_case for known cliffs the
+    # filings can't see, like expiring royalties), then keep slipping a few % a year for 10 years, then flat.
+    rps10 = d["rev_ps"].dropna().tail(11)
+    slides = [rps10.iloc[i + 3] / rps10.iloc[i] - 1 for i in range(len(rps10) - 3) if rps10.iloc[i] > 0]
+    cut = min(min(slides), 0.0) if slides else 0.0
+    if override is not None:
+        cut = -abs(float(override))
+    cut = max(cut, -v.get("bad_case_max_cut", 0.6))
+    decline = -v.get("bad_case_decline", 0.03)
+    iv_bad = (dcf_value(base * (1 + cut), decline, v["years"], 0.0, r) + net_cash) / shares_out
+    out.update(iv_bad=max(iv_bad, 0.0), bad_case_cut=cut)
     if price and not math.isnan(price) and price > 0:
         mcap = price * shares_out
         out["market_cap"] = mcap
@@ -397,6 +409,13 @@ def valuation(d: pd.DataFrame, shares_out: float | None, price: float | None, cf
         out["mos_no_growth"] = 1 - price / iv0 if iv0 > 0 else nan
         out["oe_yield"] = base / (mcap - net_cash) if mcap - net_cash > 0 else nan
         out["implied_growth"] = implied_growth(mcap - net_cash, base, v["years"], v["terminal_growth"], r)
+        ib = out["iv_bad"]
+        out["mos_bad"] = 1 - price / ib if ib > 0 else nan
+        # payoff odds: dollars of upside to estimated value per dollar of downside to the bad case
+        if price <= ib:
+            out["payoff"] = 99.0
+        else:
+            out["payoff"] = max(iv - price, 0.0) / (price - ib)
         out["p_fcf"] = mcap / last["fcf"] if last["fcf"] > 0 else nan
         out["p_b"] = mcap / last["equity"] if last["equity"] > 0 else nan
         ebit = last["op_income"]
@@ -453,6 +472,7 @@ def analyze(ticker: str, name: str, df: pd.DataFrame, shares_out, price, cfg: di
     res.flags = red_flags(d, cfg)
     res.piotroski = piotroski(d)
     res.beneish = beneish(d)
-    res.valuation = valuation(d, shares_out, price, cfg, treasury, sic, fwd_growth)
+    res.valuation = valuation(d, shares_out, price, cfg, treasury, sic, fwd_growth,
+                              override=(cfg.get("bad_case") or {}).get(ticker.upper()))
     score_and_verdict(res, cfg)
     return res

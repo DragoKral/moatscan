@@ -223,6 +223,8 @@ def scan(sec, cfg: dict, treasury: float, include_otc=False, workers=None, min_c
                      "implied_growth": v.get("implied_growth"), "hist_growth": v.get("hist_growth"),
                      "recent_growth": v.get("recent_growth"), "analyst_growth": v.get("analyst_growth"), "growth_used": v.get("growth_used"),
                      "iv_no_growth": v.get("iv_no_growth"), "mos_no_growth": v.get("mos_no_growth"),
+                     "iv_bad": v.get("iv_bad"), "mos_bad": v.get("mos_bad"), "payoff": v.get("payoff"),
+                     "bad_case_cut": v.get("bad_case_cut"),
                      "oe_yield": v.get("oe_yield"), "ev_ebit": v.get("ev_ebit"), "piotroski": r.piotroski,
                      "red_flags": sum(1 for c in r.flags if c.passed), "net_net": netnet, "sic": s["sic"],
                      "small": small})
@@ -259,7 +261,7 @@ def scan(sec, cfg: dict, treasury: float, include_otc=False, workers=None, min_c
 
 def gem_score(r) -> float | None:
     """Contrarian small-cap score, 0-100: cheap even with no growth, quality, few analysts watching,
-    beaten down, insiders own a lot or are buying."""
+    beaten down, insiders own a lot or are buying, and good odds if the bad case comes true."""
     if not r.get("small") or r.get("verdict") not in ("BUY ZONE", "WATCHLIST"):
         return None
     def nz(x, d=0.0):
@@ -273,6 +275,9 @@ def gem_score(r) -> float | None:
     sc += 10 * min(nz(r.get("insider_own")), 0.3) / 0.3
     sc += 10 if str(r.get("insider_signal")) == "True" else 0
     sc += 5 if r.get("verdict") == "BUY ZONE" else 0
+    po = r.get("payoff")                                               # odds vs the bad case
+    if po is not None and po == po:
+        sc += 10 if po >= 3 else 7 if po >= 2 else 3 if po >= 1 else -5
     return round(max(min(sc, 100), 0), 1)
 
 
