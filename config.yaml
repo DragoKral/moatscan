@@ -126,6 +126,51 @@ watchlists:
     - PWR
     - PESI
     - SOLS
+  # Inflation winners: revenue that rises with prices, pricing power, hard-to-copy real assets, banks near the money faucet
+  inflation:
+    # Payment networks: take a % of every purchase
+    - V
+    - MA
+    - AXP
+    # Pricing-power consumer brands
+    - KO
+    - PEP
+    - PG
+    - CL
+    - HSY
+    - MDLZ
+    # Ratings/data toll roads
+    - MCO
+    - SPGI
+    - MSCI
+    - VRSK
+    # Railroads
+    - UNP
+    - CSX
+    - NSC
+    # Pipelines / midstream
+    - KMI
+    - WMB
+    - EPD
+    - OKE
+    # Energy producers
+    - XOM
+    - CVX
+    - COP
+    - EOG
+    # Big banks
+    - JPM
+    - BAC
+    - WFC
+    # Local monopolies: aggregates and waste
+    - VMC
+    - MLM
+    - WM
+    - RSG
+    # Real estate (REITs; model may misread REIT cash flows)
+    - O
+    - PLD
+    - AMT
 
 scan:
   min_market_cap: 30000000     # skip true nano-caps (illiquid, often stale filings)
