@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 scan.log
 weekly.log
+logs/
