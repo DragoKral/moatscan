@@ -169,6 +169,10 @@ valuation:
 bad_case:
   INVA: 0.50   # GSK inhaler royalties (~half of revenue) expected to fade around 2031
   SHOE: 0.50   # profits roughly halved in 2026 under an interim CEO (sales history hides it)
+  HGBL: 0.45   # profits fell ~75% from 2022 to 2025 on steady sales; lending arm wound down with ~$18M write-offs in 2026
+  IMXI: 0.60   # profits fell ~75% since 2024 (H1 2026 $4.7M vs $18.8M) as retail remittances shrink; WU deal may lapse Nov 10 2026
+  WU: 0.40     # retail money transfer in structural decline (Q3 2026 operating income -35%, North America retail -7%)
+  SLVM: 0.35   # uncoated office paper is a shrinking market; plans to sell Europe business (Nov 2026)
 
 insiders:
   lookback_days: 180

@@ -44,6 +44,7 @@ grid-template-columns:minmax(150px,1.5fr) repeat(6,minmax(0,1fr));gap:6px 14px;a
 .wl{line-height:1.9}
 .picks{margin:8px 0 36px}.picks h2{margin-top:0}.pick{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:14px 16px;margin:0 0 10px}
 .pick h3{font:600 17px var(--display);margin:0 0 4px}.pick p{margin:6px 0 0;max-width:68ch}.pick b{color:var(--fg)}.picks a{color:var(--accent)}.pick .why{color:var(--mute);font-size:13.5px}
+.pick details{margin:10px 0 0}.pick summary{cursor:pointer;color:var(--accent);font-weight:600}.pick details h4{font:600 14px var(--display);margin:10px 0 2px}.pick ul{margin:4px 0 0;padding-left:20px;max-width:68ch}.pick li{margin:3px 0}
 @media (max-width:640px){.row{grid-template-columns:repeat(2,minmax(0,1fr))}.id{grid-column:1/-1}}
 """
 
