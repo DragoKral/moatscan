@@ -175,6 +175,7 @@ bad_case:
   SLVM: 0.35   # uncoated office paper is a shrinking market; plans to sell Europe business (Nov 2026)
   CRI: 0.40    # profits fell ~70% from 2023 to 2025 while sales slipped ~15%; 2026 helped by ~$130M one-time tariff refunds
   GNTX: 0.25   # profits fell ~25% in the 2021-22 chip/cost squeeze on flat sales; margins squeezed again in 2026 (metals costs, China -44%)
+  ARLP: 0.50   # coal miner (partnership): profits fell ~50% from 2023 to 2025 on ~15% lower sales; thermal coal is a shrinking market
 
 insiders:
   lookback_days: 180
